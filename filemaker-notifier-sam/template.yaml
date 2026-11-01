@@ -1,41 +1,74 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  filemaker-notifier-sam
-
-  Sample SAM Template for filemaker-notifier-sam
+    filemaker-notifier-sam
+    FileMaker Polling Notifier with Lambda, DynamoDB, and EventBridge
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
-  Function:
-    Timeout: 3
+    Function:
+        Timeout: 30
+        MemorySize: 128
 
 Resources:
-  HelloWorldFunction:
-    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
-    Properties:
-      CodeUri: hello_world/
-      Handler: app.lambda_handler
-      Runtime: python3.11
-      Architectures:
-        - x86_64
-      Events:
-        HelloWorld:
-          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
-          Properties:
-            Path: /hello
-            Method: get
+    # 1. Lambda function
+    FileMakerNotifierFunction:
+        Type: AWS::Serverless::Function
+        Properties:
+            CodeUri: hello_world/
+            Handler: app.lambda_handler
+            Runtime: python3.12
+            Environment:
+                Variables:
+                    TABLE_NAME: !Ref StateTable
+                    TARGET_STAFF_IDS: ""
+                    FM_SERVER: ""
+                    FM_DB: "教職員情報db"
+                    FM_USER: ""
+                    FM_PASSWORD: ""
+                    NTFY_TOPIC: ""
+            Policies:
+                - DynamoDBCrudPolicy:
+                      TableName: !Ref StateTable
+            Events:
+                MorningTrigger:
+                    Type: Schedule
+                    Properties:
+                        Schedule: "cron(0/2 21-0 ? * SUN-FRI *)"
+                        Description: "Mon-Sat 06:00-10:00 JST (2 min interval)"
+                        Enabled: truen-Sat 06:00-10:00 JST (2 min interval)"
+                        Enabled: true
+
+                DaytimeTrigger:
+                    Type: Schedule
+                    Properties:
+                        Schedule: "cron(0/7 1-7 ? * MON-SAT *)"
+                        Description: "Mon-Sat 10:00-16:00 JST (7 min interval)"
+                        Enabled: true
+
+                EveningTrigger:
+                    Type: Schedule
+                    Properties:
+                        Schedule: "cron(0/2 7-13 ? * MON-SAT *)"
+                        Description: "Mon-Sat 16:00-22:00 JST (2 min interval)"
+                        Enabled: true
+
+    StateTable:
+        Type: AWS::DynamoDB::Table
+        Properties:
+            TableName: FileMakerStaffState
+            BillingMode: PAY_PER_REQUEST
+            AttributeDefinitions:
+                - AttributeName: staff_id
+                  AttributeType: S
+            KeySchema:
+                - AttributeName: staff_id
+                  KeyType: HASH
 
 Outputs:
-  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
-  # Find out more about other implicit resources you can reference within SAM
-  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
-  HelloWorldApi:
-    Description: "API Gateway endpoint URL for Prod stage for Hello World function"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/Prod/hello/"
-  HelloWorldFunction:
-    Description: "Hello World Lambda Function ARN"
-    Value: !GetAtt HelloWorldFunction.Arn
-  HelloWorldFunctionIamRole:
-    Description: "Implicit IAM Role created for Hello World function"
-    Value: !GetAtt HelloWorldFunctionRole.Arn
+    FileMakerNotifierFunction:
+        Description: "FileMaker Notifier Lambda Function ARN"
+        Value: !GetAtt FileMakerNotifierFunction.Arn
+    StateTableName:
+        Description: "DynamoDB Table Name for Staff State"
+        Value: !Ref StateTable
