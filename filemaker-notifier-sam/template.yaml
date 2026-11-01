@@ -29,13 +29,14 @@ Resources:
                     NTFY_TOPIC: ""
             Policies:
                 - DynamoDBCrudPolicy:
-                  TableName: !Ref StateTable
+                      TableName: !Ref StateTable
             Events:
                 MorningTrigger:
                     Type: Schedule
                     Properties:
-                        Schedule: "cron(0/2 21-1 ? * SUN-FRI *)"
+                        Schedule: "cron(0/2 21-0 ? * SUN-FRI *)"
                         Description: "Mon-Sat 06:00-10:00 JST (2 min interval)"
+                        Enabled: truen-Sat 06:00-10:00 JST (2 min interval)"
                         Enabled: true
 
                 DaytimeTrigger:
