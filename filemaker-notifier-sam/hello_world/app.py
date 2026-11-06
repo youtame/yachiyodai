@@ -106,19 +106,20 @@ def translate_status(sts_code):
         return "Training / Off / Other"
     else:
         return f"Unknown Status ({sts_code})"
-
+    
 def send_ntfy_notification(name, status_text):
     """Send push notification via ntfy.sh."""
     url = f"https://ntfy.sh/{NTFY_TOPIC}"
-    message = f"[Attendance Update]\n{name} status changed to: \"{status_text}\"."
+    message = f"[Attendance Update]\nStaff: {name}\nStatus changed to: \"{status_text}\"."
     try:
         requests.post(
             url,
             data=message.encode("utf-8"),
             headers={
-                "Title": f"Onoma Alert [{status_text}] {name}",
+                "Title": f"Attendance Alert [{status_text}]",
                 "Priority": "urgent",
             },
+            timeout=10
         )
     except Exception as e:
         print(f"ntfy Notification Error: {e}")
