@@ -197,9 +197,9 @@ Timeline examples demonstrating how the system processes events and how the guar
 - **Judgment:** [Left-Work Guard] triggers. Since the previous state was `Left Work`, the drop to holiday is invalidated, and `Left Work` is forcefully maintained.
 - **Action:** **No notifications are sent.** DB remains `Left Work`.
 
-## 9. Why is the repository named "Toritsudaigaku"?
+## 9. Why is the repository named "Yachiyodai"?
 
-Do you know Toritsudaigaku Station?
+Do you know Yachiyodai Station?
 
 > Yachiyodai Station (八千代台駅, Yachiyodai-eki) is a passenger railway station in the city of Yachiyo, Chiba, Japan, operated by the private railway operator Keisei Electric Railway.
 > _— from Wikipedia_
