@@ -21,6 +21,7 @@ Resources:
             Environment:
                 Variables:
                     TABLE_NAME: !Ref StateTable
+                    HISTORY_TABLE_NAME: !Ref AttendanceHistoryTable
                     TARGET_STAFF_IDS: ""
                     FM_SERVER: ""
                     FM_DB: "教職員情報db"
@@ -30,13 +31,14 @@ Resources:
             Policies:
                 - DynamoDBCrudPolicy:
                       TableName: !Ref StateTable
+                - DynamoDBCrudPolicy:
+                      TableName: !Ref AttendanceHistoryTable
             Events:
                 MorningTrigger:
                     Type: Schedule
                     Properties:
                         Schedule: "cron(0/2 21-0 ? * SUN-FRI *)"
-                        Description: "Mon-Sat 06:00-10:00 JST (2 min interval)"
-                        Enabled: truen-Sat 06:00-10:00 JST (2 min interval)"
+                        Description: "Sun-Fri 06:00-10:00 JST (2 min interval)"
                         Enabled: true
 
                 DaytimeTrigger:
@@ -53,6 +55,7 @@ Resources:
                         Description: "Mon-Sat 16:00-22:00 JST (2 min interval)"
                         Enabled: true
 
+    # 2. DynamoDB state table
     StateTable:
         Type: AWS::DynamoDB::Table
         Properties:
@@ -65,6 +68,23 @@ Resources:
                 - AttributeName: staff_id
                   KeyType: HASH
 
+    # 3. DynamoDB history table
+    AttendanceHistoryTable:
+        Type: AWS::DynamoDB::Table
+        Properties:
+            TableName: FileMakerAttendanceHistory
+            BillingMode: PAY_PER_REQUEST
+            AttributeDefinitions:
+                - AttributeName: staff_id
+                  AttributeType: S
+                - AttributeName: timestamp
+                  AttributeType: S
+            KeySchema:
+                - AttributeName: staff_id
+                  KeyType: HASH
+                - AttributeName: timestamp
+                  KeyType: RANGE
+
 Outputs:
     FileMakerNotifierFunction:
         Description: "FileMaker Notifier Lambda Function ARN"
@@ -72,3 +92,6 @@ Outputs:
     StateTableName:
         Description: "DynamoDB Table Name for Staff State"
         Value: !Ref StateTable
+    AttendanceHistoryTableName:
+        Description: "DynamoDB Table Name for Attendance History"
+        Value: !Ref AttendanceHistoryTable
