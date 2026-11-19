@@ -7,6 +7,7 @@ from datetime import datetime, timezone, timedelta
 
 # Environment variables configuration
 TABLE_NAME = os.environ.get('TABLE_NAME', 'FileMakerStaffState')
+HISTORY_TABLE_NAME = os.environ.get('HISTORY_TABLE_NAME', 'FileMakerAttendanceHistory')
 FM_DB = os.environ.get('FM_DB', '教職員情報db')
 TARGET_STAFF_IDS_STR = os.environ.get('TARGET_STAFF_IDS', '')
 
@@ -21,6 +22,7 @@ if not all([FM_SERVER, FM_USER, FM_PASSWORD, NTFY_TOPIC]):
 
 dynamodb = boto3.resource('dynamodb')
 table = dynamodb.Table(TABLE_NAME)
+history_table = dynamodb.Table(HISTORY_TABLE_NAME)
 
 def get_japan_date_str():
     """Get today's date string in Japan Standard Time (JST)."""
@@ -162,7 +164,7 @@ def lambda_handler(event, context):
 
             current_status_str = translate_status(current_sts_code)
 
-            # Get previous station from DynamoDB
+            # Get previous status from DynamoDB
             response = table.get_item(Key={"staff_id": staff_id})
             item = response.get("Item", {})
             
@@ -182,20 +184,32 @@ def lambda_handler(event, context):
                 current_status_str = "Left Work"
 
             if previous_status_str != current_status_str:
-                print(f"Status change confirmed for {staff_name} ({staff_id}): {previous_status_str} -> {current_status_str}")
-                
-                if previous_status_str is not None:
-                    send_ntfy_notification(staff_name, current_status_str)
-                
-                table.put_item(
-                    Item={
-                        "staff_id": staff_id,
-                        "name": staff_name,
-                        "status": current_status_str,
-                        "attendance_date": today_str,
-                        "updated_at": context.aws_request_id
-                    }
-                )
+                            print(f"Status change confirmed for {staff_name} ({staff_id}): {previous_status_str} -> {current_status_str}")
+                            
+                            if previous_status_str is not None:
+                                send_ntfy_notification(staff_name, current_status_str)
+                            
+                            table.put_item(
+                                Item={
+                                    "staff_id": staff_id,
+                                    "name": staff_name,
+                                    "status": current_status_str,
+                                    "attendance_date": today_str,
+                                    "updated_at": context.aws_request_id
+                                }
+                            )
+                            
+                            now_iso = datetime.now(timezone(timedelta(hours=9))).isoformat()
+                            history_table.put_item(
+                                Item={
+                                    "staff_id": staff_id,
+                                    "timestamp": now_iso,
+                                    "name": staff_name,
+                                    "status": current_status_str,
+                                    "date": today_str
+                                }
+                            )
+                            print(f"Attendance history recorded for {staff_name} ({staff_id}): {current_status_str} at {now_iso}")
 
     finally:
         logout_fm_session(token)
